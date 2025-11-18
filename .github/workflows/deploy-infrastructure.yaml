@@ -1,0 +1,160 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/deploy-infrastructure.yaml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'infrastructure/**'
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'Infrastructure component to deploy (all, ingress-nginx, cert-manager, argocd, databases, rbac)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ingress-nginx
+          - cert-manager
+          - argocd
+          - databases
+          - rbac
+
+env:
+  KUBECTL_VERSION: 'v1.28.0'
+
+jobs:
+  validate:
+    name: Validate Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Install kubeval
+        run: |
+          wget https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+          tar xf kubeval-linux-amd64.tar.gz
+          sudo mv kubeval /usr/local/bin
+
+      - name: Validate Kubernetes manifests
+        run: |
+          echo "Validating infrastructure manifests..."
+          find infrastructure -name "*.yaml" -type f | while read file; do
+            echo "Validating $file"
+            kubeval --ignore-missing-schemas "$file" || echo "Warning: Validation issues in $file"
+          done
+
+      - name: Kustomize build test
+        run: |
+          echo "Testing kustomize builds..."
+          for dir in infrastructure/*/; do
+            if [ -f "$dir/kustomization.yaml" ]; then
+              echo "Building $dir"
+              kubectl kustomize "$dir" > /dev/null
+            fi
+          done
+
+      - name: Check for secrets in manifests
+        run: |
+          echo "Scanning for potential secrets..."
+          if grep -r -i -E "(password|secret|token|api[_-]?key):\s*['\"]?[a-zA-Z0-9]{8,}" infrastructure/ --include="*.yaml" --exclude-dir=rbac; then
+            echo "::error::Potential hardcoded secrets found in manifests!"
+            exit 1
+          fi
+          echo "No hardcoded secrets detected."
+
+  deploy-infrastructure:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Deploy RBAC for GitHub Actions
+        if: github.event.inputs.component == 'all' || github.event.inputs.component == 'rbac' || github.event_name == 'push'
+        run: |
+          echo "Deploying GitHub Actions RBAC..."
+          kubectl apply -k infrastructure/rbac/
+          kubectl wait --for=condition=Ready --timeout=60s -n github-actions pod -l app=github-actions || true
+
+      - name: Deploy Ingress NGINX
+        if: github.event.inputs.component == 'all' || github.event.inputs.component == 'ingress-nginx' || github.event_name == 'push'
+        run: |
+          echo "Deploying Ingress NGINX..."
+          kubectl apply -k infrastructure/ingress-nginx/
+          kubectl wait --for=condition=available --timeout=300s deployment -n ingress-nginx ingress-nginx-controller || echo "Warning: Ingress controller not ready within timeout"
+
+      - name: Deploy Cert Manager
+        if: github.event.inputs.component == 'all' || github.event.inputs.component == 'cert-manager' || github.event_name == 'push'
+        run: |
+          if [ -d "infrastructure/cert-manager" ]; then
+            echo "Deploying Cert Manager..."
+            kubectl apply -k infrastructure/cert-manager/
+            kubectl wait --for=condition=available --timeout=300s deployment -n cert-manager cert-manager || echo "Warning: Cert manager not ready within timeout"
+          else
+            echo "Cert manager directory not found, skipping..."
+          fi
+
+      - name: Deploy ArgoCD
+        if: github.event.inputs.component == 'all' || github.event.inputs.component == 'argocd' || github.event_name == 'push'
+        run: |
+          if [ -d "infrastructure/argocd" ] && [ -f "infrastructure/argocd/kustomization.yaml" ]; then
+            echo "Deploying ArgoCD components..."
+            kubectl apply -k infrastructure/argocd/
+          else
+            echo "ArgoCD kustomization not found, skipping..."
+          fi
+
+      - name: Deploy Databases
+        if: github.event.inputs.component == 'all' || github.event.inputs.component == 'databases' || github.event_name == 'push'
+        run: |
+          echo "Deploying database infrastructure..."
+          if [ -d "infrastructure/databases/postgres" ]; then
+            kubectl apply -k infrastructure/databases/postgres/
+          fi
+          if [ -d "infrastructure/databases/redis" ]; then
+            kubectl apply -k infrastructure/databases/redis/
+          fi
+
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "=== Deployment Summary ==="
+          echo "Namespaces:"
+          kubectl get namespaces
+          echo ""
+          echo "Infrastructure Pods:"
+          kubectl get pods -A | grep -E "(ingress-nginx|cert-manager|argocd|postgres|redis|github-actions)" || echo "No infrastructure pods found"

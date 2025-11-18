@@ -1,0 +1,100 @@
+name: Validate Pull Request
+
+on:
+  pull_request:
+    branches:
+      - main
+
+env:
+  KUBECTL_VERSION: 'v1.28.0'
+
+jobs:
+  validate-manifests:
+    name: Validate Kubernetes Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Install validation tools
+        run: |
+          # Install kubeval
+          wget https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+          tar xf kubeval-linux-amd64.tar.gz
+          sudo mv kubeval /usr/local/bin
+
+          # Install kubesec for security scanning
+          wget https://github.com/controlplaneio/kubesec/releases/latest/download/kubesec_linux_amd64.tar.gz
+          tar xf kubesec_linux_amd64.tar.gz
+          sudo mv kubesec /usr/local/bin
+
+      - name: Validate YAML syntax
+        run: |
+          echo "Validating YAML syntax..."
+          find . -name "*.yaml" -o -name "*.yml" | while read file; do
+            echo "Checking $file"
+            kubeval --ignore-missing-schemas "$file" || echo "Warning: Issues in $file"
+          done
+
+      - name: Test kustomize builds
+        run: |
+          echo "Testing all kustomize builds..."
+          find . -name "kustomization.yaml" | while read kustfile; do
+            dir=$(dirname "$kustfile")
+            echo "Building $dir"
+            kubectl kustomize "$dir" > /dev/null || exit 1
+          done
+
+      - name: Security scan with kubesec
+        run: |
+          echo "Running security scans..."
+          find . -name "*.yaml" -path "*/apps/*" -o -path "*/infrastructure/*" | while read file; do
+            echo "Scanning $file"
+            kubesec scan "$file" || true
+          done
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "Scanning for hardcoded secrets..."
+          if grep -r -i -E "(password|secret|token|api[_-]?key):\s*['\"]?[a-zA-Z0-9]{8,}" . --include="*.yaml" --exclude-dir=.git --exclude-dir=rbac; then
+            echo "::error::Potential hardcoded secrets found!"
+            exit 1
+          fi
+          echo "✓ No hardcoded secrets detected"
+
+      - name: Check resource limits
+        run: |
+          echo "Checking for missing resource limits..."
+          missing_limits=0
+          find apps infrastructure -name "*.yaml" -type f | while read file; do
+            if grep -q "kind: Deployment\|kind: StatefulSet" "$file"; then
+              if ! grep -q "resources:" "$file"; then
+                echo "::warning file=$file::Missing resource limits in $file"
+                missing_limits=$((missing_limits + 1))
+              fi
+            fi
+          done
+          if [ $missing_limits -gt 0 ]; then
+            echo "::warning::Found $missing_limits deployments without resource limits"
+          fi
+
+      - name: Check for latest image tags
+        run: |
+          echo "Checking for 'latest' image tags..."
+          if grep -r "image:.*:latest" apps infrastructure --include="*.yaml"; then
+            echo "::warning::Found 'latest' image tags. Consider using specific versions."
+          fi
+
+      - name: Lint results summary
+        if: always()
+        run: |
+          echo "=== Validation Complete ==="
+          echo "✓ YAML syntax validation completed"
+          echo "✓ Kustomize builds tested"
+          echo "✓ Security scanning completed"
+          echo "✓ Secret scanning completed"

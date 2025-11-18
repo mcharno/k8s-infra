@@ -1,11 +1,21 @@
 
 # Kubernetes Infrastructure
 
- 
+
 
 This repository contains all Kubernetes manifests and configurations needed to rebuild the entire cluster from scratch. It follows a GitOps-friendly monorepo structure compatible with tools like ArgoCD and Flux.
 
- 
+## 🚀 Quick Start
+
+**New!** Automated deployment with GitHub Actions:
+
+```bash
+./scripts/setup-github-actions.sh
+```
+
+See [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md) for complete CI/CD setup guide.
+
+
 
 ## Repository Structure
 
@@ -47,13 +57,21 @@ k8s-infra/
 
 │   ├── cert-manager/        # Certificate management
 
+│   ├── rbac/                # GitHub Actions RBAC
+
 │   └── databases/           # Shared database services
 
 │       ├── postgres/        # PostgreSQL
 
 │       └── redis/           # Redis
 
+├── .github/                 # GitHub Actions CI/CD
+
+│   └── workflows/           # Automated deployment workflows
+
 └── scripts/                 # Helper scripts
+
+    ├── setup-github-actions.sh  # CI/CD setup
 
     └── argocd/              # ArgoCD setup scripts
 
@@ -226,6 +244,23 @@ To rebuild the entire cluster from this repository:
 - Each app's README should document required secrets
 
  
+
+## CI/CD with GitHub Actions
+
+This repository includes automated deployment workflows. See [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md) for setup.
+
+**Features:**
+- ✅ Automated validation and security scanning
+- ✅ Push-to-deploy for infrastructure and apps
+- ✅ Manual workflow dispatch for selective deployments
+- ✅ Secure RBAC with dedicated service account
+- ✅ Environment protection for production
+
+**Quick setup:**
+```bash
+./scripts/setup-github-actions.sh
+# Follow the prompts to add kubeconfig to GitHub Secrets
+```
 
 ## GitOps Integration
 

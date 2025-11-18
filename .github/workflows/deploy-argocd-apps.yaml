@@ -1,0 +1,83 @@
+name: Deploy ArgoCD Applications
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'argocd/applications/**'
+      - '.github/workflows/deploy-argocd-apps.yaml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'argocd/applications/**'
+  workflow_dispatch:
+
+env:
+  KUBECTL_VERSION: 'v1.28.0'
+
+jobs:
+  validate:
+    name: Validate ArgoCD Applications
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Validate ArgoCD application manifests
+        run: |
+          echo "Validating ArgoCD application manifests..."
+          for file in argocd/applications/*.yaml; do
+            if [ -f "$file" ]; then
+              echo "Validating $file"
+              kubectl apply --dry-run=client -f "$file" || exit 1
+            fi
+          done
+
+  deploy:
+    name: Deploy ArgoCD Applications
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Deploy ArgoCD applications
+        run: |
+          echo "Deploying ArgoCD applications..."
+          for file in argocd/applications/*.yaml; do
+            if [ -f "$file" ]; then
+              echo "Applying $file"
+              kubectl apply -f "$file"
+            fi
+          done
+
+      - name: List ArgoCD applications
+        run: |
+          echo "=== ArgoCD Applications ==="
+          kubectl get applications -n argocd || echo "No ArgoCD applications found"
