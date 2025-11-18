@@ -1,0 +1,33 @@
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+
+kind: Kustomization
+
+ 
+
+namespace: cert-manager
+
+ 
+
+resources:
+
+  - namespace.yaml
+
+  # Add cert-manager CRDs and deployment manifests
+
+  # Download from: https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+
+ 
+
+  # Custom resources:
+
+  # - clusterissuer-letsencrypt-prod.yaml
+
+  # - clusterissuer-letsencrypt-staging.yaml
+
+ 
+
+commonLabels:
+
+  app.kubernetes.io/name: cert-manager
+

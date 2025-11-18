@@ -1,0 +1,67 @@
+
+# Secrets - NEVER commit these
+
+*secret*.yaml
+
+*credentials*.yaml
+
+*.key
+
+*.crt
+
+*.pem
+
+ 
+
+# Temporary exports (review before committing)
+
+*-export.yaml
+
+current-export.yaml
+
+ 
+
+# Editor files
+
+.vscode/
+
+.idea/
+
+*.swp
+
+*.swo
+
+*~
+
+ 
+
+# OS files
+
+.DS_Store
+
+Thumbs.db
+
+ 
+
+# Backup files
+
+*.bak
+
+*.backup
+
+*.old
+
+ 
+
+# Helm
+
+*.tgz
+
+charts/*/charts/
+
+ 
+
+# Kustomize
+
+kustomization.yaml.bak
+
