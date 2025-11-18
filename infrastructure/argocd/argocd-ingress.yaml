@@ -4,14 +4,16 @@ metadata:
   name: argocd-server-ingress
   namespace: argocd
   annotations:
-    # For Traefik (k3s default)
-    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
+    # Nginx ingress annotations
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
 
-    # Uncomment for cert-manager
+    # Uncomment for cert-manager with Let's Encrypt
     # cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
-  # Uncomment for TLS
+  ingressClassName: nginx
+
+  # Uncomment for TLS with cert-manager
   # tls:
   # - hosts:
   #   - argocd.yourdomain.com
