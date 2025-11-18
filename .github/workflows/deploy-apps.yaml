@@ -1,0 +1,181 @@
+name: Deploy Applications
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/**'
+      - '.github/workflows/deploy-apps.yaml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/**'
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'Application to deploy (all, nextcloud, wallabag, prometheus, grafana, jellyfin, homeassistant, homer)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - nextcloud
+          - wallabag
+          - prometheus
+          - grafana
+          - jellyfin
+          - homeassistant
+          - homer
+
+env:
+  KUBECTL_VERSION: 'v1.28.0'
+
+jobs:
+  validate:
+    name: Validate Application Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Install kubeval
+        run: |
+          wget https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+          tar xf kubeval-linux-amd64.tar.gz
+          sudo mv kubeval /usr/local/bin
+
+      - name: Validate application manifests
+        run: |
+          echo "Validating application manifests..."
+          find apps -name "*.yaml" -type f | while read file; do
+            echo "Validating $file"
+            kubeval --ignore-missing-schemas "$file" || echo "Warning: Validation issues in $file"
+          done
+
+      - name: Kustomize build test
+        run: |
+          echo "Testing kustomize builds..."
+          for dir in apps/*/base/; do
+            if [ -f "$dir/kustomization.yaml" ]; then
+              echo "Building $dir"
+              kubectl kustomize "$dir" > /dev/null
+            fi
+          done
+
+      - name: Check for secrets in manifests
+        run: |
+          echo "Scanning for potential secrets..."
+          if grep -r -i -E "(password|secret|token|api[_-]?key):\s*['\"]?[a-zA-Z0-9]{8,}" apps/ --include="*.yaml"; then
+            echo "::error::Potential hardcoded secrets found in manifests!"
+            exit 1
+          fi
+          echo "No hardcoded secrets detected."
+
+      - name: Check for image tags
+        run: |
+          echo "Checking for 'latest' image tags (not recommended for production)..."
+          if grep -r "image:.*:latest" apps/ --include="*.yaml"; then
+            echo "::warning::Found 'latest' image tags. Consider using specific versions for production."
+          fi
+
+  deploy-apps:
+    name: Deploy Applications
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: ${{ env.KUBECTL_VERSION }}
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Determine apps to deploy
+        id: apps
+        run: |
+          if [ "${{ github.event.inputs.app }}" == "all" ] || [ "${{ github.event_name }}" == "push" ]; then
+            echo "apps=$(ls -d apps/*/ | xargs -n 1 basename | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          else
+            echo "apps=${{ github.event.inputs.app }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy Nextcloud
+        if: contains(steps.apps.outputs.apps, 'nextcloud')
+        run: |
+          echo "Deploying Nextcloud..."
+          kubectl apply -k apps/nextcloud/base/
+          kubectl rollout status deployment -n nextcloud nextcloud --timeout=300s || echo "Warning: Nextcloud deployment not ready"
+
+      - name: Deploy Wallabag
+        if: contains(steps.apps.outputs.apps, 'wallabag')
+        run: |
+          echo "Deploying Wallabag..."
+          kubectl apply -k apps/wallabag/base/
+          kubectl rollout status deployment -n wallabag wallabag --timeout=300s || echo "Warning: Wallabag deployment not ready"
+
+      - name: Deploy Prometheus
+        if: contains(steps.apps.outputs.apps, 'prometheus')
+        run: |
+          echo "Deploying Prometheus..."
+          kubectl apply -k apps/prometheus/base/
+          kubectl rollout status deployment -n prometheus prometheus --timeout=300s || echo "Warning: Prometheus deployment not ready"
+
+      - name: Deploy Grafana
+        if: contains(steps.apps.outputs.apps, 'grafana')
+        run: |
+          echo "Deploying Grafana..."
+          kubectl apply -k apps/grafana/base/
+          kubectl rollout status deployment -n grafana grafana --timeout=300s || echo "Warning: Grafana deployment not ready"
+
+      - name: Deploy Jellyfin
+        if: contains(steps.apps.outputs.apps, 'jellyfin')
+        run: |
+          echo "Deploying Jellyfin..."
+          kubectl apply -k apps/jellyfin/base/
+          kubectl rollout status deployment -n jellyfin jellyfin --timeout=300s || echo "Warning: Jellyfin deployment not ready"
+
+      - name: Deploy Home Assistant
+        if: contains(steps.apps.outputs.apps, 'homeassistant')
+        run: |
+          echo "Deploying Home Assistant..."
+          kubectl apply -k apps/homeassistant/base/
+          kubectl rollout status deployment -n homeassistant homeassistant --timeout=300s || echo "Warning: Home Assistant deployment not ready"
+
+      - name: Deploy Homer
+        if: contains(steps.apps.outputs.apps, 'homer')
+        run: |
+          echo "Deploying Homer..."
+          kubectl apply -k apps/homer/base/
+          kubectl rollout status deployment -n homer homer --timeout=300s || echo "Warning: Homer deployment not ready"
+
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "=== Deployment Summary ==="
+          for app in ${{ steps.apps.outputs.apps }}; do
+            echo ""
+            echo "=== $app ==="
+            kubectl get all -n $app 2>/dev/null || echo "Namespace $app not found or empty"
+          done
