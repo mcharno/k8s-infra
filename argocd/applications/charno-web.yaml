@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: charno-web
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # The project the application belongs to
+  project: default
+
+  # Source of the application manifests
+  source:
+    repoURL: https://github.com/mcharno/web-app.git
+    targetRevision: main
+    path: k8s/base
+
+  # Destination cluster and namespace
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: charno-web
+
+  # Sync policy
+  syncPolicy:
+    # Automated sync - ArgoCD will automatically sync when Git changes
+    automated:
+      prune: true       # Delete resources that are no longer in Git
+      selfHeal: true    # Force sync when cluster state deviates from Git
+      allowEmpty: false # Prevent deletion of all resources
+
+    # Sync options
+    syncOptions:
+      - CreateNamespace=true  # Auto-create namespace if missing
+      - PruneLast=true        # Prune resources as last step
+      - RespectIgnoreDifferences=true
+
+    # Retry strategy for failed syncs
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences for certain fields (optional)
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # Ignore replica count if using HPA
+
+  # Health check configuration
+  revisionHistoryLimit: 10

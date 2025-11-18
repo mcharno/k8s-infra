@@ -17,6 +17,8 @@ k8s-infra/
 
 ├── apps/                      # Application deployments
 
+│   ├── charno-web/           # Personal website (manifests in web-app repo)
+
 │   ├── nextcloud/
 
 │   ├── wallabag/
@@ -31,17 +33,35 @@ k8s-infra/
 
 │   └── homer/
 
-└── infrastructure/            # Core infrastructure components
+├── argocd/                   # ArgoCD Application manifests
 
-    ├── ingress-nginx/        # Nginx ingress controller
+│   └── applications/         # ArgoCD apps
 
-    ├── cert-manager/         # Certificate management
+│       └── charno-web.yaml   # Charno web GitOps config
 
-    └── databases/            # Shared database services
+├── infrastructure/           # Core infrastructure components
 
-        ├── postgres/         # PostgreSQL
+│   ├── argocd/              # ArgoCD ingress configuration
 
-        └── redis/            # Redis
+│   ├── ingress-nginx/       # Nginx ingress controller
+
+│   ├── cert-manager/        # Certificate management
+
+│   └── databases/           # Shared database services
+
+│       ├── postgres/        # PostgreSQL
+
+│       └── redis/           # Redis
+
+└── scripts/                 # Helper scripts
+
+    └── argocd/              # ArgoCD setup scripts
+
+        ├── install-argocd.sh
+
+        ├── setup-ghcr-secret.sh
+
+        └── setup-database-secret.sh
 
 ```
 
