@@ -41,7 +41,9 @@ k8s-infra/
 
 │   ├── homeassistant/
 
-│   └── homer/
+│   ├── homer/
+
+│   └── samba/                # LAN file sharing (SMB/CIFS)
 
 ├── argocd/                   # ArgoCD Application manifests
 
@@ -264,9 +266,19 @@ This repository includes automated deployment workflows. See [GITHUB-ACTIONS.md]
 
 ## GitOps Integration
 
- 
+### ArgoCD + GitHub Actions
 
-### With ArgoCD
+**Automated deployments with GitOps!** See [ARGOCD-GITHUB-ACTIONS.md](ARGOCD-GITHUB-ACTIONS.md) for complete integration guide.
+
+**Quick start:**
+1. Install ArgoCD: `./scripts/argocd/install-argocd.sh`
+2. Deploy ArgoCD Application: `kubectl apply -f argocd/applications/charno-web.yaml`
+3. Setup GHCR secret: `./scripts/argocd/setup-ghcr-secret.sh`
+4. Add workflow to your app repo from `.github/workflow-templates/`
+
+**Flow:** Code Push → GitHub Actions (Build + Push + Update Manifest) → ArgoCD (Auto-Sync) → k3s (Deploy)
+
+### With ArgoCD (Manual)
 
  
 
