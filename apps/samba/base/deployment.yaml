@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: samba
+  namespace: samba
+  labels:
+    app: samba
+spec:
+  replicas: 1  # Single pod as requested
+  strategy:
+    type: Recreate  # Prevent multiple pods accessing same hostPath
+  selector:
+    matchLabels:
+      app: samba
+  template:
+    metadata:
+      labels:
+        app: samba
+    spec:
+      containers:
+      - name: samba
+        image: dperson/samba:latest
+        imagePullPolicy: IfNotPresent
+
+        # Low resource limits for minimal CPU/RAM usage
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        ports:
+        - name: smb-tcp
+          containerPort: 445
+          protocol: TCP
+        - name: smb-udp
+          containerPort: 137
+          protocol: UDP
+        - name: smb-udp2
+          containerPort: 138
+          protocol: UDP
+        - name: smb-tcp2
+          containerPort: 139
+          protocol: TCP
+
+        env:
+        # User configuration from secret
+        - name: USERID
+          valueFrom:
+            secretKeyRef:
+              name: samba-credentials
+              key: userid
+        - name: GROUPID
+          valueFrom:
+            secretKeyRef:
+              name: samba-credentials
+              key: groupid
+
+        # Workgroup from configmap
+        - name: WORKGROUP
+          valueFrom:
+            configMapKeyRef:
+              name: samba-config
+              key: workgroup
+
+        # Create user and share via environment variables
+        # Format: USER;PASSWORD
+        - name: USER
+          valueFrom:
+            secretKeyRef:
+              name: samba-credentials
+              key: username
+        - name: PASS
+          valueFrom:
+            secretKeyRef:
+              name: samba-credentials
+              key: password
+
+        # Share configuration
+        # Format: name;path;browse;readonly;guest;users;admins;writelist;comment
+        - name: SHARE
+          value: "share;/storage;yes;no;no;all;none;all;Shared Storage"
+
+        # Additional Samba options
+        - name: RECYCLE
+          value: "false"
+
+        # Security and performance tuning
+        - name: SMB
+          value: "true"
+
+        volumeMounts:
+        - name: storage
+          mountPath: /storage
+
+        securityContext:
+          privileged: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            - SETGID
+            - SETUID
+            drop:
+            - ALL
+
+      volumes:
+      - name: storage
+        persistentVolumeClaim:
+          claimName: samba-storage
+
+      # Ensure pod runs on the same node where hostPath is
+      # For single-node k3s, this is automatic
+      # For multi-node, you might want to add a nodeSelector
+      restartPolicy: Always

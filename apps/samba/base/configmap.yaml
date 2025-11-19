@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: samba-config
+  namespace: samba
+  labels:
+    app: samba
+data:
+  # Samba share configuration
+  # Share name will be 'share'
+  share-name: "share"
+  # Workgroup name
+  workgroup: "WORKGROUP"
+  # Server string (description)
+  server-string: "K3S Samba Server"

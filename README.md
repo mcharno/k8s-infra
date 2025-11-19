@@ -41,7 +41,9 @@ k8s-infra/
 
 │   ├── homeassistant/
 
-│   └── homer/
+│   ├── homer/
+
+│   └── samba/                # LAN file sharing (SMB/CIFS)
 
 ├── argocd/                   # ArgoCD Application manifests
 
