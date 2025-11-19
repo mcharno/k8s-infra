@@ -15,7 +15,17 @@ This repository contains all Kubernetes manifests and configurations needed to r
 
 See [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md) for complete CI/CD setup guide.
 
+## 📚 Documentation
 
+Comprehensive documentation is available in the [`docs/`](docs/) directory:
+
+- **[Architecture Overview](docs/architecture.md)** - System architecture, components, and data flows
+- **[GitHub Actions CI/CD](docs/github-actions.md)** - Automated deployment pipelines
+- **[ArgoCD Setup](docs/argocd-setup.md)** - GitOps continuous delivery
+- **[ArgoCD GitOps Integration](docs/argocd-gitops.md)** - GitHub Actions + ArgoCD workflow
+- **[Samba File Share](docs/samba-share.md)** - LAN file sharing setup
+- **[Quick Reference](docs/quick-reference.md)** - Common commands and settings
+- **[Troubleshooting Guide](docs/troubleshooting.md)** - Common issues and solutions
 
 ## Repository Structure
 
