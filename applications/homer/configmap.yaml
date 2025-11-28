@@ -1,0 +1,218 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homer-config
+  namespace: homer
+data:
+  config.yml: |
+    ---
+    # Homer Dashboard Configuration
+    # Main dashboard for K3s homelab on Raspberry Pi 4
+
+    title: "K3s Home Lab"
+    subtitle: "Raspberry Pi 4 Cluster Dashboard"
+    logo: "assets/icons/kubernetes.png"
+
+    header: true
+    footer: '<p>Running on Raspberry Pi 4 (8GB) with K3s • 2.7TB Storage</p>'
+
+    # Optional: Set to true to show search bar
+    # search: true
+
+    theme: default
+    colors:
+      light:
+        highlight-primary: "#3367d6"
+        highlight-secondary: "#4285f4"
+        highlight-hover: "#5a95f5"
+        background: "#f5f5f5"
+        card-background: "#ffffff"
+        text: "#363636"
+        text-header: "#424242"
+        text-title: "#303030"
+        text-subtitle: "#424242"
+        card-shadow: rgba(0, 0, 0, 0.1)
+      dark:
+        highlight-primary: "#3367d6"
+        highlight-secondary: "#4285f4"
+        highlight-hover: "#5a95f5"
+        background: "#131313"
+        card-background: "#2b2b2b"
+        text: "#eaeaea"
+        text-header: "#ffffff"
+        text-title: "#fafafa"
+        text-subtitle: "#f5f5f5"
+        card-shadow: rgba(0, 0, 0, 0.4)
+
+    # Optional links (top right corner)
+    links:
+      - name: "K3s Documentation"
+        icon: "fas fa-book"
+        url: "https://docs.k3s.io"
+        target: "_blank"
+      - name: "Kubernetes Docs"
+        icon: "fas fa-dharmachakra"
+        url: "https://kubernetes.io/docs"
+        target: "_blank"
+      - name: "GitHub Repo"
+        icon: "fab fa-github"
+        url: "https://github.com"
+        target: "_blank"
+
+    # Services organized by category
+    services:
+      # ==========================================
+      # Monitoring & Management
+      # ==========================================
+      - name: "Monitoring & Management"
+        icon: "fas fa-chart-line"
+        items:
+          - name: "Grafana"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/grafana.png"
+            subtitle: "Metrics & Dashboards"
+            tag: "monitoring"
+            keywords: "metrics monitoring dashboard"
+            url: "https://grafana.charn.io"
+            target: "_blank"
+
+          - name: "Grafana (Local)"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/grafana.png"
+            subtitle: "Metrics - Fast Local Access"
+            tag: "local"
+            keywords: "metrics monitoring dashboard local"
+            url: "https://grafana.local.charn.io"
+            target: "_blank"
+
+          - name: "Prometheus"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/prometheus.png"
+            subtitle: "Metrics Collection"
+            tag: "monitoring"
+            keywords: "metrics prometheus"
+            url: "https://prometheus.charn.io"
+            target: "_blank"
+
+          - name: "Prometheus (Local)"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/prometheus.png"
+            subtitle: "Metrics - Local Access"
+            tag: "local"
+            keywords: "metrics prometheus local"
+            url: "https://prometheus.local.charn.io"
+            target: "_blank"
+
+      # ==========================================
+      # File Storage & Cloud
+      # ==========================================
+      - name: "File Storage & Cloud"
+        icon: "fas fa-cloud"
+        items:
+          - name: "Nextcloud"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/nextcloud.png"
+            subtitle: "Personal Cloud Storage"
+            tag: "cloud"
+            keywords: "files cloud storage nextcloud"
+            url: "https://nextcloud.charn.io"
+            target: "_blank"
+
+          - name: "Nextcloud (Local)"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/nextcloud.png"
+            subtitle: "Cloud Storage - Fast Upload/Download"
+            tag: "local"
+            keywords: "files cloud storage nextcloud local fast"
+            url: "https://nextcloud.local.charn.io"
+            target: "_blank"
+
+      # ==========================================
+      # Media & Entertainment
+      # ==========================================
+      - name: "Media & Entertainment"
+        icon: "fas fa-play-circle"
+        items:
+          - name: "Jellyfin"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/jellyfin.png"
+            subtitle: "Media Server"
+            tag: "media"
+            keywords: "media movies tv shows music"
+            url: "https://jellyfin.charn.io"
+            target: "_blank"
+
+          - name: "Jellyfin (Local)"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/jellyfin.png"
+            subtitle: "Media Server - Low Latency Streaming"
+            tag: "local"
+            keywords: "media movies tv shows music local streaming"
+            url: "https://jellyfin.local.charn.io"
+            target: "_blank"
+
+      # ==========================================
+      # Productivity & Organization
+      # ==========================================
+      - name: "Productivity & Organization"
+        icon: "fas fa-tasks"
+        items:
+          - name: "Wallabag"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/wallabag.png"
+            subtitle: "Read It Later"
+            tag: "reading"
+            keywords: "reading articles bookmarks"
+            url: "https://wallabag.charn.io"
+            target: "_blank"
+
+          - name: "Wallabag (Local)"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/wallabag.png"
+            subtitle: "Read It Later - Local"
+            tag: "local"
+            keywords: "reading articles bookmarks local"
+            url: "https://wallabag.local.charn.io"
+            target: "_blank"
+
+      # ==========================================
+      # Smart Home & Automation
+      # ==========================================
+      - name: "Smart Home & Automation"
+        icon: "fas fa-home"
+        items:
+          - name: "Home Assistant"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/homeassistant.png"
+            subtitle: "Smart Home Automation"
+            tag: "automation"
+            keywords: "smart home automation iot"
+            url: "https://home.charn.io"
+            target: "_blank"
+
+          - name: "Home Assistant (Local)"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/homeassistant.png"
+            subtitle: "Smart Home - Local Control"
+            tag: "local"
+            keywords: "smart home automation iot local"
+            url: "https://home.local.charn.io"
+            target: "_blank"
+
+      # ==========================================
+      # Personal Websites
+      # ==========================================
+      - name: "Personal Websites"
+        icon: "fas fa-globe"
+        items:
+          - name: "charno.net"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/web.png"
+            subtitle: "Personal Website"
+            tag: "website"
+            keywords: "website personal"
+            url: "https://charno.net"
+            target: "_blank"
+
+          - name: "www.charno.net"
+            logo: "https://raw.githubusercontent.com/NX211/homer-icons/master/png/web.png"
+            subtitle: "Personal Website (www)"
+            tag: "website"
+            keywords: "website personal www"
+            url: "https://www.charno.net"
+            target: "_blank"
+
+    # Optional: Message to display (remove if not needed)
+    # message:
+    #   style: "is-info"
+    #   title: "Welcome!"
+    #   icon: "fa fa-info-circle"
+    #   content: "This is your K3s homelab dashboard. External URLs work from anywhere, Local URLs are faster when at home."

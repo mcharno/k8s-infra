@@ -1,0 +1,27 @@
+---
+# Local Path StorageClass for K3s
+# Uses the built-in local-path-provisioner that comes with K3s
+#
+# IMPORTANT: volumeBindingMode must be WaitForFirstConsumer
+# This ensures PVs are created on the node where the pod is scheduled
+# Attempting to use "Immediate" mode will cause PVCs to stay Pending
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-path
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+
+# Provisioner from K3s built-in local-path-provisioner
+provisioner: rancher.io/local-path
+
+# CRITICAL: Must be WaitForFirstConsumer for single-node clusters
+# Waits until a pod using the PVC is scheduled to a node
+volumeBindingMode: WaitForFirstConsumer
+
+# Delete volumes when PVC is deleted
+reclaimPolicy: Delete
+
+# Allow volume expansion
+allowVolumeExpansion: true

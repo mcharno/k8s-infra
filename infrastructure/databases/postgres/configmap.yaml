@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: database
+data:
+  init.sql: |
+    -- Create databases for applications
+    CREATE DATABASE nextcloud;
+    CREATE DATABASE wallabag;
+
+    -- Create users with generated passwords (set via Secret)
+    -- Passwords will be injected via environment variables in production
+    CREATE USER nextcloud WITH PASSWORD '${NEXTCLOUD_PASSWORD}';
+    CREATE USER wallabag WITH PASSWORD '${WALLABAG_PASSWORD}';
+
+    -- Grant privileges on databases
+    GRANT ALL PRIVILEGES ON DATABASE nextcloud TO nextcloud;
+    GRANT ALL PRIVILEGES ON DATABASE wallabag TO wallabag;
+
+    -- For PostgreSQL 15+, grant schema privileges
+    \c nextcloud
+    GRANT ALL ON SCHEMA public TO nextcloud;
+
+    \c wallabag
+    GRANT ALL ON SCHEMA public TO wallabag;

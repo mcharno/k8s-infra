@@ -1,35 +1,25 @@
-
 apiVersion: kustomize.config.k8s.io/v1beta1
-
 kind: Kustomization
-
- 
 
 namespace: ingress-nginx
 
- 
-
 resources:
-
   - namespace.yaml
+  - deployment.yaml
 
-  # Option 1: Use official Helm chart export or manifests
-
-  # Download from: https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
-
- 
-
-  # Option 2: Reference your current deployment
-
-  # - deployment.yaml
-
-  # - service.yaml
-
-  # - configmap.yaml
-
- 
+# Note: This kustomization uses a hybrid approach:
+# 1. Official Nginx Ingress from upstream (for updates and compatibility)
+# 2. Custom ConfigMap with critical settings (ssl-redirect: false)
+# 3. Fixed NodePorts for consistent access (30280 HTTP, 30443 HTTPS)
+#
+# To deploy:
+# Option A: Use the install script (recommended):
+#   bash infrastructure/ingress-nginx/install.sh
+#
+# Option B: Manual installation:
+#   1. kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.9.5/deploy/static/provider/baremetal/deploy.yaml
+#   2. kubectl apply -f infrastructure/ingress-nginx/configmap.yaml
+#   3. Patch NodePorts (see install.sh for commands)
 
 commonLabels:
-
   app.kubernetes.io/name: ingress-nginx
-
