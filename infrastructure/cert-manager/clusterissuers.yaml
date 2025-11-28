@@ -1,0 +1,55 @@
+---
+# Production Let's Encrypt ClusterIssuer with Cloudflare DNS-01
+# This issuer is used for all certificates (both external and local domains)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-cloudflare-prod
+spec:
+  acme:
+    # Let's Encrypt production server
+    server: https://acme-v02.api.letsencrypt.org/directory
+
+    # Email for certificate expiration notifications
+    email: matt@charno.net  # CHANGE THIS to your email
+
+    # Private key secret for ACME account
+    privateKeySecretRef:
+      name: letsencrypt-cloudflare-prod-key
+
+    # DNS-01 challenge solver using Cloudflare
+    solvers:
+    - dns01:
+        cloudflare:
+          # Cloudflare API token (requires DNS:Edit permission)
+          apiTokenSecretRef:
+            name: cloudflare-api-token
+            key: api-token
+
+---
+# Staging Let's Encrypt ClusterIssuer (for testing)
+# Use this for testing to avoid rate limits
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-cloudflare-staging
+spec:
+  acme:
+    # Let's Encrypt staging server (higher rate limits, untrusted certs)
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+
+    # Email for certificate expiration notifications
+    email: matt@charno.net  # CHANGE THIS to your email
+
+    # Private key secret for ACME account
+    privateKeySecretRef:
+      name: letsencrypt-cloudflare-staging-key
+
+    # DNS-01 challenge solver using Cloudflare
+    solvers:
+    - dns01:
+        cloudflare:
+          # Cloudflare API token (requires DNS:Edit permission)
+          apiTokenSecretRef:
+            name: cloudflare-api-token
+            key: api-token

@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homer
+  namespace: homer
+  labels:
+    app: homer
+    app.kubernetes.io/name: homer
+    app.kubernetes.io/component: dashboard
+spec:
+  type: ClusterIP
+  selector:
+    app: homer
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  sessionAffinity: None

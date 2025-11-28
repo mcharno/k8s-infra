@@ -1,0 +1,45 @@
+# Note: This is a reference deployment for Nginx Ingress Controller
+# In production, you may want to use the official manifests from:
+# https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.9.5/deploy/static/provider/baremetal/deploy.yaml
+#
+# However, this provides a simplified version with our specific configurations
+
+# Using the official Nginx Ingress deployment as base
+# This file references the official installation URL for easy updates
+#
+# To deploy, run:
+# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.9.5/deploy/static/provider/baremetal/deploy.yaml
+#
+# Then apply our custom ConfigMap:
+# kubectl apply -f configmap.yaml
+#
+# And patch the service for specific NodePorts:
+# kubectl patch svc ingress-nginx-controller -n ingress-nginx --type='json' \
+#   -p='[{"op": "replace", "path": "/spec/ports/0/nodePort", "value":30280}]'
+# kubectl patch svc ingress-nginx-controller -n ingress-nginx --type='json' \
+#   -p='[{"op": "replace", "path": "/spec/ports/1/nodePort", "value":30443}]'
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+    nodePort: 30280  # Fixed NodePort for HTTP
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: https
+    nodePort: 30443  # Fixed NodePort for HTTPS
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx

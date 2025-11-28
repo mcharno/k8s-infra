@@ -1,0 +1,129 @@
+# Cloudflare Tunnel Configuration for Hybrid HTTPS Setup
+# File location on Pi: /etc/cloudflared/config.yml
+#
+# IMPORTANT: This is a TEMPLATE file
+# Before using, you must:
+# 1. Replace YOUR_TUNNEL_ID with your actual tunnel ID
+# 2. Ensure credentials file exists at /root/.cloudflared/YOUR_TUNNEL_ID.json
+#
+# Architecture:
+# - External traffic: Cloudflare → Tunnel → cloudflared → Nginx Ingress (port 30280)
+# - Local traffic: Router → Pi:30443 → Nginx Ingress (bypasses tunnel)
+
+tunnel: YOUR_TUNNEL_ID
+credentials-file: /root/.cloudflared/YOUR_TUNNEL_ID.json
+
+# Ingress rules - routes traffic from Cloudflare to your services
+# All traffic goes to Nginx Ingress on port 30280 (HTTP)
+# Nginx handles SSL termination and routing to specific services
+ingress:
+  # ==========================================
+  # charn.io services (External access only)
+  # Local access uses *.local.charn.io directly
+  # ==========================================
+
+  # Homer Dashboard
+  - hostname: homer.charn.io
+    service: http://localhost:30280
+    originRequest:
+      httpHostHeader: homer.charn.io
+      noTLSVerify: false
+
+  # Nextcloud - File Storage
+  - hostname: nextcloud.charn.io
+    service: http://localhost:30280
+    originRequest:
+      httpHostHeader: nextcloud.charn.io
+      noTLSVerify: false
+
+  # Jellyfin - Media Server
+  - hostname: jellyfin.charn.io
+    service: http://localhost:30280
+    originRequest:
+      httpHostHeader: jellyfin.charn.io
+      noTLSVerify: false
+
+  # Grafana - Monitoring Dashboard
+  - hostname: grafana.charn.io
+    service: http://localhost:30280
+    originRequest:
+      httpHostHeader: grafana.charn.io
+      noTLSVerify: false
+
+  # Prometheus - Metrics Collection
+  - hostname: prometheus.charn.io
+    service: http://localhost:30280
+    originRequest:
+      httpHostHeader: prometheus.charn.io
+      noTLSVerify: false
+
+  # Wallabag - Read-it-later (uses shared postgres)
+  - hostname: wallabag.charn.io
+    service: http://localhost:30280
+    originRequest:
+      httpHostHeader: wallabag.charn.io
+      noTLSVerify: false
+
+  # Home Assistant - Smart Home
+  - hostname: home.charn.io
+    service: http://localhost:30280
+    originRequest:
+      httpHostHeader: home.charn.io
+      noTLSVerify: false
+
+  # Kubernetes Dashboard (optional)
+  - hostname: k8s.charn.io
+    service: http://localhost:30280
+    originRequest:
+      httpHostHeader: k8s.charn.io
+      noTLSVerify: false
+
+  # ==========================================
+  # charno.net services (External only)
+  # No local access for this domain
+  # ==========================================
+
+  # Apex domain
+  - hostname: charno.net
+    service: http://localhost:30280
+    originRequest:
+      httpHostHeader: charno.net
+      noTLSVerify: false
+
+  # WWW subdomain
+  - hostname: www.charno.net
+    service: http://localhost:30280
+    originRequest:
+      httpHostHeader: www.charno.net
+      noTLSVerify: false
+
+  # Add more charno.net subdomains as needed
+  # Example:
+  # - hostname: blog.charno.net
+  #   service: http://localhost:30280
+  #   originRequest:
+  #     httpHostHeader: blog.charno.net
+  #     noTLSVerify: false
+
+  # ==========================================
+  # Catch-all rule (required - must be last)
+  # ==========================================
+  - service: http_status:404
+
+# Optional: Enable metrics endpoint for monitoring
+# Access at http://localhost:2000/metrics
+# Can be scraped by Prometheus for tunnel health monitoring
+metrics: localhost:2000
+
+# Optional: Enable warp routing (for private networks)
+# warp-routing:
+#   enabled: true
+
+# Optional: Logging configuration
+# loglevel: info  # Options: debug, info, warn, error, fatal
+
+# Optional: Connection tuning
+# connections: 4  # Number of connections to Cloudflare edge
+
+# Optional: Grace period for shutdown
+# grace-period: 30s

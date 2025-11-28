@@ -1,0 +1,68 @@
+---
+# Wildcard certificate for external access (*.charn.io)
+# Used by applications accessed via Cloudflare Tunnel
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: charn-io-wildcard
+  namespace: cert-manager
+spec:
+  # Secret where the certificate will be stored
+  secretName: charn-io-wildcard-tls
+
+  # ClusterIssuer to use for obtaining the certificate
+  issuerRef:
+    name: letsencrypt-cloudflare-prod
+    kind: ClusterIssuer
+
+  # Domains covered by this certificate
+  dnsNames:
+  - '*.charn.io'
+  - 'charn.io'  # Also cover apex domain
+
+  # Certificate will be automatically renewed 30 days before expiry
+  # renewBefore: 720h  # Default: 30 days
+
+---
+# Wildcard certificate for local access (*.local.charn.io)
+# Used by applications accessed directly on local network
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: local-charn-io-wildcard
+  namespace: cert-manager
+spec:
+  # Secret where the certificate will be stored
+  secretName: local-charn-io-wildcard-tls
+
+  # ClusterIssuer to use for obtaining the certificate
+  issuerRef:
+    name: letsencrypt-cloudflare-prod
+    kind: ClusterIssuer
+
+  # Domains covered by this certificate
+  dnsNames:
+  - '*.local.charn.io'
+  - 'local.charn.io'  # Also cover apex domain
+
+---
+# Wildcard certificate for charno.net (*.charno.net)
+# Used by custom website pods
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: charno-net-wildcard
+  namespace: cert-manager
+spec:
+  # Secret where the certificate will be stored
+  secretName: charno-net-wildcard-tls
+
+  # ClusterIssuer to use for obtaining the certificate
+  issuerRef:
+    name: letsencrypt-cloudflare-prod
+    kind: ClusterIssuer
+
+  # Domains covered by this certificate
+  dnsNames:
+  - '*.charno.net'
+  - 'charno.net'  # Also cover apex domain

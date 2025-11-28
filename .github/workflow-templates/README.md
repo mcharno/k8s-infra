@@ -70,7 +70,7 @@ git push
 3. **GHCR secret** configured in your k3s cluster
 4. **Kubernetes manifests** in your app repository (usually `k8s/base/`)
 
-See [ARGOCD-GITHUB-ACTIONS.md](../../ARGOCD-GITHUB-ACTIONS.md) for complete setup guide.
+See [docs/argocd-github-actions.md](../../docs/argocd-github-actions.md) for complete setup guide.
 
 ### Step 1: Choose a Template
 
@@ -292,7 +292,7 @@ spec:
 
 ## Additional Resources
 
-- **Full setup guide:** [ARGOCD-GITHUB-ACTIONS.md](../../ARGOCD-GITHUB-ACTIONS.md)
+- **Full setup guide:** [docs/argocd-github-actions.md](../../docs/argocd-github-actions.md)
 - **ArgoCD documentation:** https://argo-cd.readthedocs.io
 - **GitHub Actions documentation:** https://docs.github.com/en/actions
 - **Docker best practices:** https://docs.docker.com/develop/dev-best-practices/

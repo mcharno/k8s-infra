@@ -1,0 +1,48 @@
+---
+# Local Ingress for Homer Dashboard
+# Accessed via: https://homer.local.charn.io (from home network, direct to Pi)
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: homer-local
+  namespace: homer
+  labels:
+    app: homer
+    access: local
+  annotations:
+    # SSL configuration for local access
+    # Local traffic goes directly to Nginx on port 30443 (HTTPS)
+    # Can enable SSL redirect for local traffic
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+
+spec:
+  ingressClassName: nginx
+
+  # TLS configuration using local wildcard certificate
+  tls:
+  - hosts:
+    - homer.local.charn.io
+    secretName: local-charn-io-wildcard-tls
+
+  # Routing rules
+  rules:
+  - host: homer.local.charn.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: homer
+            port:
+              number: 8080

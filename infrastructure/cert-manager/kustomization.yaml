@@ -1,33 +1,22 @@
-
 apiVersion: kustomize.config.k8s.io/v1beta1
-
 kind: Kustomization
-
- 
 
 namespace: cert-manager
 
- 
-
 resources:
-
   - namespace.yaml
+  - clusterissuers.yaml
+  - certificates.yaml
 
-  # Add cert-manager CRDs and deployment manifests
-
-  # Download from: https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
-
- 
-
-  # Custom resources:
-
-  # - clusterissuer-letsencrypt-prod.yaml
-
-  # - clusterissuer-letsencrypt-staging.yaml
-
- 
+# Note: cert-manager itself must be installed separately
+# Use the install.sh script or apply the official manifests:
+# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+#
+# Then create the Cloudflare API token secret:
+# bash infrastructure/cert-manager/create-cloudflare-secret.sh
+#
+# Finally apply this kustomization:
+# kubectl apply -k infrastructure/cert-manager/
 
 commonLabels:
-
   app.kubernetes.io/name: cert-manager
-

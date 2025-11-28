@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+data:
+  # CRITICAL: Disable global SSL redirect
+  # This prevents 308 redirect loops with Cloudflare Tunnel
+  # Cloudflare sends HTTP → Nginx, if Nginx redirects to HTTPS → infinite loop
+  ssl-redirect: "false"
+  force-ssl-redirect: "false"
+
+  # Trust forwarded headers from Cloudflare
+  use-forwarded-headers: "true"
+  compute-full-forwarded-for: "true"
+
+  # Cloudflare IP ranges for real IP detection
+  # Updated periodically from: https://www.cloudflare.com/ips/
+  proxy-real-ip-cidr: "173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,131.0.72.0/22"
+
+  # Performance tuning for Raspberry Pi
+  worker-processes: "2"
+  max-worker-connections: "2048"
+
+  # Optimize buffer sizes
+  client-body-buffer-size: "16k"
+  client-header-buffer-size: "1k"
+  large-client-header-buffers: "4 8k"
+
+  # Timeouts
+  proxy-connect-timeout: "60"
+  proxy-send-timeout: "60"
+  proxy-read-timeout: "60"
+
+  # Enable real IP from proxy
+  enable-real-ip: "true"
+
+  # Log format
+  log-format-upstream: '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status $req_id'
+
+  # Hide Nginx version
+  server-tokens: "false"
+
+  # Custom error pages (optional)
+  # custom-http-errors: "404,503"

@@ -1,0 +1,47 @@
+---
+# External Ingress for Homer Dashboard
+# Accessed via: https://homer.charn.io (from anywhere via Cloudflare Tunnel)
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: homer-external
+  namespace: homer
+  labels:
+    app: homer
+    access: external
+  annotations:
+    # SSL configuration
+    # Note: ssl-redirect should be false globally in Nginx ConfigMap
+    # Cloudflare Tunnel sends HTTP, Nginx terminates SSL
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+
+spec:
+  ingressClassName: nginx
+
+  # TLS configuration using wildcard certificate
+  tls:
+  - hosts:
+    - homer.charn.io
+    secretName: charn-io-wildcard-tls
+
+  # Routing rules
+  rules:
+  - host: homer.charn.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: homer
+            port:
+              number: 8080
