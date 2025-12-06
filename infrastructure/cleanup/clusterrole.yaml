@@ -1,0 +1,17 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-cleanup
+rules:
+  # Allow listing and getting pods across all namespaces
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list", "get", "delete"]
+  # Allow listing namespaces
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["list", "get"]
+  # Allow getting pod status
+  - apiGroups: [""]
+    resources: ["pods/status"]
+    verbs: ["get"]

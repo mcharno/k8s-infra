@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: homer-external
+  namespace: homer
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-cloudflare-prod
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - homer.charn.io
+    secretName: charn-io-wildcard-tls
+  rules:
+  - host: homer.charn.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: homer
+            port:
+              number: 8080
