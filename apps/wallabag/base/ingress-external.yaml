@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wallabag-external
+  namespace: wallabag
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-cloudflare-prod
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - bag.charn.io
+    secretName: charn-io-wildcard-tls
+  rules:
+  - host: bag.charn.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: wallabag
+            port:
+              number: 80

@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallabag
+  namespace: wallabag
+  labels:
+    app: wallabag
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: wallabag
+  template:
+    metadata:
+      labels:
+        app: wallabag
+    spec:
+      containers:
+      - name: wallabag
+        image: wallabag/wallabag:latest
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        env:
+        # Database configuration (shared PostgreSQL)
+        - name: SYMFONY__ENV__DATABASE_DRIVER
+          value: pdo_pgsql
+        - name: SYMFONY__ENV__DATABASE_HOST
+          value: postgres-lb.database.svc.cluster.local
+        - name: SYMFONY__ENV__DATABASE_PORT
+          value: "5432"
+        - name: SYMFONY__ENV__DATABASE_NAME
+          value: wallabag
+        - name: SYMFONY__ENV__DATABASE_USER
+          value: wallabag
+        - name: SYMFONY__ENV__DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: wallabag-secrets
+              key: db-password
+
+        # Redis configuration (shared Redis)
+        - name: SYMFONY__ENV__REDIS_HOST
+          value: redis-lb.database.svc.cluster.local
+        - name: SYMFONY__ENV__REDIS_PORT
+          value: "6379"
+
+        # Application configuration
+        - name: SYMFONY__ENV__SECRET
+          valueFrom:
+            secretKeyRef:
+              name: wallabag-secrets
+              key: secret
+        - name: SYMFONY__ENV__DOMAIN_NAME
+          value: https://bag.charn.io
+        - name: SYMFONY__ENV__SERVER_NAME
+          value: Wallabag
+        - name: APP_ENV
+          value: prod
+
+        # Proxy configuration (for Ingress)
+        - name: TRUSTED_PROXIES
+          value: 10.42.0.0/16,127.0.0.1
+
+        # User registration settings
+        - name: SYMFONY__ENV__FOSUSER_REGISTRATION
+          value: "false"
+        - name: SYMFONY__ENV__FOSUSER_CONFIRMATION
+          value: "false"
+
+        # Database population
+        - name: POPULATE_DATABASE
+          value: "false"
+
+        # Legacy compatibility
+        - name: POSTGRES_HOST
+          value: postgres-lb.database.svc.cluster.local
+        - name: POSTGRES_PORT
+          value: "5432"
+
+        volumeMounts:
+        - name: images
+          mountPath: /var/www/wallabag/web/assets/images
+
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: "1"
+            memory: 1Gi
+
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          timeoutSeconds: 1
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 60
+          periodSeconds: 5
+          timeoutSeconds: 1
+          failureThreshold: 3
+
+      volumes:
+      - name: images
+        persistentVolumeClaim:
+          claimName: wallabag-images

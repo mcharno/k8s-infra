@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homer
+  namespace: homer
+  labels:
+    app: homer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homer
+  template:
+    metadata:
+      labels:
+        app: homer
+    spec:
+      containers:
+      - name: homer
+        image: b4bz/homer:latest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /www/assets/config.yml
+          subPath: config.yml
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+      volumes:
+      - name: config
+        configMap:
+          name: homer-config

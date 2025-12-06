@@ -17,7 +17,9 @@ resources:
 
   - service.yaml
 
-  - ingress.yaml
+  - ingress-local.yaml
+
+  - ingress-external.yaml
 
   - pvc.yaml
 

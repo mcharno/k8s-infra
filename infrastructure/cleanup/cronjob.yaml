@@ -1,0 +1,170 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pod-cleanup
+  namespace: k3s-maintenance
+  labels:
+    app: pod-cleanup
+    component: maintenance
+spec:
+  # Run every 6 hours at minute 0
+  schedule: "0 */6 * * *"
+  # Keep last 3 successful and 1 failed job for debugging
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  # Don't run new job if previous one is still running
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: pod-cleanup
+        component: maintenance
+    spec:
+      # Clean up job after 1 hour
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app: pod-cleanup
+            component: maintenance
+        spec:
+          serviceAccountName: pod-cleanup
+          restartPolicy: OnFailure
+          containers:
+            - name: pod-cleanup
+              image: bitnami/kubectl:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  #!/bin/bash
+                  set -euo pipefail
+
+                  echo "========================================="
+                  echo "Kubernetes Pod Cleanup Job"
+                  echo "Started at: $(date)"
+                  echo "========================================="
+                  echo ""
+
+                  # Count pods before cleanup
+                  TOTAL_BEFORE=$(kubectl get pods -A --no-headers 2>/dev/null | wc -l)
+                  echo "Total pods before cleanup: $TOTAL_BEFORE"
+                  echo ""
+
+                  # Function to safely delete pods
+                  delete_pods() {
+                      local condition=$1
+                      local description=$2
+
+                      echo "Cleaning up $description..."
+
+                      local pods=$(kubectl get pods -A --field-selector="$condition" -o json 2>/dev/null | \
+                          jq -r '.items[] | select((now - (.metadata.creationTimestamp | fromdateiso8601)) > 3600) | "\(.metadata.namespace) \(.metadata.name)"' 2>/dev/null || echo "")
+
+                      if [ -n "$pods" ]; then
+                          local count=0
+                          while IFS= read -r line; do
+                              local namespace=$(echo "$line" | awk '{print $1}')
+                              local pod=$(echo "$line" | awk '{print $2}')
+
+                              if [ -n "$namespace" ] && [ -n "$pod" ]; then
+                                  if kubectl delete pod "$pod" -n "$namespace" --ignore-not-found=true --wait=false 2>/dev/null; then
+                                      echo "  ✓ Deleted: $namespace/$pod"
+                                      ((count++))
+                                  else
+                                      echo "  ✗ Failed to delete: $namespace/$pod"
+                                  fi
+                              fi
+                          done <<< "$pods"
+                          echo "  Deleted $count $description"
+                      else
+                          echo "  No $description to clean up"
+                      fi
+                      echo ""
+                  }
+
+                  # Clean up failed pods (older than 1 hour)
+                  delete_pods "status.phase=Failed" "failed pods"
+
+                  # Clean up completed/succeeded pods (older than 1 hour)
+                  delete_pods "status.phase=Succeeded" "completed pods"
+
+                  # Clean up evicted pods
+                  echo "Cleaning up evicted pods..."
+                  EVICTED_PODS=$(kubectl get pods -A -o json 2>/dev/null | \
+                      jq -r '.items[] | select(.status.reason == "Evicted") | "\(.metadata.namespace) \(.metadata.name)"' 2>/dev/null || echo "")
+
+                  if [ -n "$EVICTED_PODS" ]; then
+                      EVICTED_COUNT=0
+                      while IFS= read -r line; do
+                          local namespace=$(echo "$line" | awk '{print $1}')
+                          local pod=$(echo "$line" | awk '{print $2}')
+
+                          if [ -n "$namespace" ] && [ -n "$pod" ]; then
+                              if kubectl delete pod "$pod" -n "$namespace" --ignore-not-found=true --wait=false 2>/dev/null; then
+                                  echo "  ✓ Deleted: $namespace/$pod"
+                                  ((EVICTED_COUNT++))
+                              else
+                                  echo "  ✗ Failed to delete: $namespace/$pod"
+                              fi
+                          fi
+                      done <<< "$EVICTED_PODS"
+                      echo "  Deleted $EVICTED_COUNT evicted pods"
+                  else
+                      echo "  No evicted pods to clean up"
+                  fi
+                  echo ""
+
+                  # Clean up pods in unknown state
+                  echo "Cleaning up pods in unknown state..."
+                  UNKNOWN_PODS=$(kubectl get pods -A -o json 2>/dev/null | \
+                      jq -r '.items[] | select(.status.phase == "Unknown" or .status.reason == "ContainerStatusUnknown") | select((now - (.metadata.creationTimestamp | fromdateiso8601)) > 3600) | "\(.metadata.namespace) \(.metadata.name)"' 2>/dev/null || echo "")
+
+                  if [ -n "$UNKNOWN_PODS" ]; then
+                      UNKNOWN_COUNT=0
+                      while IFS= read -r line; do
+                          local namespace=$(echo "$line" | awk '{print $1}')
+                          local pod=$(echo "$line" | awk '{print $2}')
+
+                          if [ -n "$namespace" ] && [ -n "$pod" ]; then
+                              if kubectl delete pod "$pod" -n "$namespace" --ignore-not-found=true --wait=false 2>/dev/null; then
+                                  echo "  ✓ Deleted: $namespace/$pod"
+                                  ((UNKNOWN_COUNT++))
+                              else
+                                  echo "  ✗ Failed to delete: $namespace/$pod"
+                              fi
+                          fi
+                      done <<< "$UNKNOWN_PODS"
+                      echo "  Deleted $UNKNOWN_COUNT pods in unknown state"
+                  else
+                      echo "  No pods in unknown state to clean up"
+                  fi
+                  echo ""
+
+                  # Wait a bit for deletions to complete
+                  echo "Waiting for deletions to complete..."
+                  sleep 10
+
+                  # Count pods after cleanup
+                  TOTAL_AFTER=$(kubectl get pods -A --no-headers 2>/dev/null | wc -l)
+                  PODS_REMOVED=$((TOTAL_BEFORE - TOTAL_AFTER))
+
+                  echo "========================================="
+                  echo "Cleanup Summary"
+                  echo "========================================="
+                  echo "Total pods before: $TOTAL_BEFORE"
+                  echo "Total pods after:  $TOTAL_AFTER"
+                  echo "Pods removed:      $PODS_REMOVED"
+                  echo ""
+                  echo "Completed at: $(date)"
+                  echo "========================================="
+
+                  exit 0
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi

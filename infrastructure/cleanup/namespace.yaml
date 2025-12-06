@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k3s-maintenance
+  labels:
+    name: k3s-maintenance
+    purpose: cluster-maintenance

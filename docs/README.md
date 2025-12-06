@@ -16,7 +16,7 @@ Complete documentation for the K3s homelab infrastructure on Raspberry Pi 4.
 | Document | Description | When to Use |
 |----------|-------------|-------------|
 | **[Quick Start Guide](quick-start-guide.md)** | Step-by-step deployment walkthrough with verification at each phase | First-time setup or learning the deployment process |
-| **[Getting Started](../../docs/getting-started.md)** | Guide to populating this repository with your current Kubernetes configurations | Migrating existing cluster to GitOps |
+| **[Getting Started](getting-started.md)** | Guide to populating this repository with your current Kubernetes configurations | Migrating existing cluster to GitOps |
 | **[Disaster Recovery Guide](disaster-recovery.md)** | Complete cluster rebuild from scratch (2-4 hours) | Hardware failure, corruption, or clean slate rebuild |
 | **[Migration Summary](MIGRATION-SUMMARY.md)** | Overview of infrastructure components and architecture decisions | Understanding design choices and component selection |
 
@@ -82,9 +82,9 @@ Comprehensive documentation about the hybrid network setup.
 | **[Deployment Workflow](deployment-workflow.md)** | GitHub Actions + ArgoCD GitOps workflow | PR validation, automated deployment, rollbacks |
 | **[ArgoCD Setup](argocd-setup.md)** | ArgoCD installation and configuration | App-of-apps pattern, sync policies |
 | **[ArgoCD GitOps](argocd-gitops.md)** | GitOps integration with GitHub Actions | Multi-environment strategies, secrets management |
-| **[ArgoCD + GitHub Actions Integration](../../docs/argocd-github-actions.md)** | Complete guide for ArgoCD + GitHub Actions GitOps | Build, push, update manifests, auto-sync |
+| **[ArgoCD + GitHub Actions Integration](argocd-github-actions.md)** | Complete guide for ArgoCD + GitHub Actions GitOps | Build, push, update manifests, auto-sync |
 | **[GitHub Actions](github-actions.md)** | CI/CD pipeline configuration | Validation, deployment, RBAC |
-| **[GitHub Actions CI/CD Setup](../../docs/github-actions-ci-cd.md)** | Automated deployment setup for k3s cluster | RBAC, kubeconfig secrets, workflows |
+| **[GitHub Actions CI/CD Setup](github-actions-ci-cd.md)** | Automated deployment setup for k3s cluster | RBAC, kubeconfig secrets, workflows |
 
 ### 🔧 Operations & Troubleshooting
 
@@ -289,10 +289,10 @@ docs/
 └── architecture.md                   System architecture
 ```
 
-### Additional Guides (in central docs/)
+### Additional Guides
 
 ```
-../../docs/
+docs/
 ├── getting-started.md                Guide to populating repo with existing configs
 ├── argocd-github-actions.md          Complete ArgoCD + GitHub Actions integration
 └── github-actions-ci-cd.md           GitHub Actions CI/CD setup for k3s
