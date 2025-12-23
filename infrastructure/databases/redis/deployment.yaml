@@ -22,6 +22,14 @@ spec:
         command:
         - redis-server
         - /usr/local/etc/redis/redis.conf
+        - --requirepass
+        - $(REDIS_PASSWORD)
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-auth
+              key: password
         volumeMounts:
         - name: config
           mountPath: /usr/local/etc/redis
@@ -35,15 +43,19 @@ spec:
             memory: "256Mi"
             cpu: "200m"
         livenessProbe:
-          tcpSocket:
-            port: 6379
+          exec:
+            command:
+            - sh
+            - -c
+            - redis-cli -a $REDIS_PASSWORD ping
           initialDelaySeconds: 15
           periodSeconds: 10
         readinessProbe:
           exec:
             command:
-            - redis-cli
-            - ping
+            - sh
+            - -c
+            - redis-cli -a $REDIS_PASSWORD ping
           initialDelaySeconds: 5
           periodSeconds: 5
       volumes:

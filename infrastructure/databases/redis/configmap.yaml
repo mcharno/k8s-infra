@@ -18,9 +18,12 @@ data:
     loglevel notice
 
     # Persistence
-    save 900 1      # Save if 1 key changed in 15 minutes
-    save 300 10     # Save if 10 keys changed in 5 minutes
-    save 60 10000   # Save if 10000 keys changed in 1 minute
+    # Save if 1 key changed in 15 minutes
+    save 900 1
+    # Save if 10 keys changed in 5 minutes
+    save 300 10
+    # Save if 10000 keys changed in 1 minute
+    save 60 10000
 
     dir /data
     dbfilename dump.rdb
@@ -38,6 +41,11 @@ data:
     rename-command FLUSHDB ""
     rename-command FLUSHALL ""
     rename-command CONFIG ""
+    rename-command KEYS ""
+    rename-command SHUTDOWN "SHUTDOWN_SAFE_ONLY"
+
+    # Security - Connection limits
+    maxclients 100
 
     # Performance
     tcp-backlog 511
