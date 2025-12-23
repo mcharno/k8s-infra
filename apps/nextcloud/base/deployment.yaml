@@ -45,7 +45,7 @@ spec:
               key: admin-password
         # Trusted domains
         - name: NEXTCLOUD_TRUSTED_DOMAINS
-          value: "nextcloud.charn.io nextcloud.local.charn.io localhost 192.168.0.23"
+          value: "cloud.charn.io cloud.local.charn.io localhost 192.168.0.23"
         # Data directory
         - name: NEXTCLOUD_DATA_DIR
           value: /var/www/html/data
@@ -57,9 +57,19 @@ spec:
         - name: OVERWRITEPROTOCOL
           value: https
         - name: OVERWRITEHOST
-          value: nextcloud.charn.io
+          value: cloud.charn.io
         - name: OVERWRITECLIURL
-          value: https://nextcloud.charn.io
+          value: https://cloud.charn.io
+        # Redis configuration for caching and file locking
+        - name: REDIS_HOST
+          value: redis.database.svc.cluster.local
+        - name: REDIS_HOST_PORT
+          value: "6379"
+        - name: REDIS_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-auth
+              key: password
         volumeMounts:
         - name: data
           mountPath: /var/www/html
