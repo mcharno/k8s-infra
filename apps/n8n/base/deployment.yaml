@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  namespace: n8n
+  labels:
+    app: n8n
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: n8n
+  template:
+    metadata:
+      labels:
+        app: n8n
+    spec:
+      containers:
+      - name: n8n
+        image: docker.n8n.io/n8nio/n8n:stable
+        ports:
+        - containerPort: 5678
+          protocol: TCP
+        env:
+        # Database configuration (PostgreSQL)
+        - name: DB_TYPE
+          value: postgresdb
+        - name: DB_POSTGRESDB_HOST
+          value: postgres-lb.database.svc.cluster.local
+        - name: DB_POSTGRESDB_PORT
+          value: "5432"
+        - name: DB_POSTGRESDB_DATABASE
+          value: n8n
+        - name: DB_POSTGRESDB_USER
+          value: n8n
+        - name: DB_POSTGRESDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: n8n-secrets
+              key: db-password
+        - name: DB_POSTGRESDB_SCHEMA
+          value: public
+
+        # Server configuration
+        - name: N8N_HOST
+          value: auto.charn.io
+        - name: N8N_PORT
+          value: "5678"
+        - name: N8N_PROTOCOL
+          value: https
+        - name: N8N_EDITOR_BASE_URL
+          value: https://auto.charn.io
+
+        # Webhook configuration
+        - name: WEBHOOK_URL
+          value: https://auto.charn.io/
+
+        # Timezone configuration
+        - name: GENERIC_TIMEZONE
+          value: America/New_York
+        - name: TZ
+          value: America/New_York
+
+        # Security settings
+        - name: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
+          value: "true"
+
+        # Encryption key (stored in secret)
+        - name: N8N_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: n8n-secrets
+              key: encryption-key
+
+        # Execution settings
+        - name: EXECUTIONS_TIMEOUT
+          value: "300"  # 5 minutes default timeout
+        - name: EXECUTIONS_TIMEOUT_MAX
+          value: "3600"  # 1 hour max timeout
+
+        # Workflow settings
+        - name: WORKFLOWS_DEFAULT_NAME
+          value: "My Workflow"
+
+        # User management (disable for single-user mode, enable for multi-user)
+        - name: N8N_USER_MANAGEMENT_DISABLED
+          value: "false"
+
+        # Task runners (recommended)
+        - name: N8N_RUNNERS_ENABLED
+          value: "true"
+
+        # Proxy settings (for reverse proxy)
+        - name: N8N_PROXY_HOPS
+          value: "1"
+
+        # Security enhancements
+        - name: N8N_PAYLOAD_SIZE_MAX
+          value: "16"  # Max 16MB payload
+        - name: N8N_METRICS
+          value: "true"  # Enable Prometheus metrics
+        - name: N8N_DIAGNOSTICS_ENABLED
+          value: "false"  # Disable diagnostics for privacy
+        - name: N8N_HIRING_BANNER_ENABLED
+          value: "false"  # Disable hiring banner
+        - name: N8N_PERSONALIZATION_ENABLED
+          value: "false"  # Disable telemetry
+
+        volumeMounts:
+        - name: data
+          mountPath: /home/node/.n8n
+
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: "1"
+            memory: 1Gi
+
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5678
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: n8n-data
