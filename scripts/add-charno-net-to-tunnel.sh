@@ -58,10 +58,13 @@ else
     echo "Step 2: Adding DNS records to Cloudflare Tunnel..."
     echo ""
 
+    # Set environment variable for origin cert
+    export TUNNEL_ORIGIN_CERT="$CERT_PATH"
+
     # Add DNS routes for charno.net domains
-    cloudflared tunnel route dns --origincert "$CERT_PATH" "$TUNNEL_ID" charno.net || echo "Note: charno.net may already exist"
-    cloudflared tunnel route dns --origincert "$CERT_PATH" "$TUNNEL_ID" www.charno.net || echo "Note: www.charno.net may already exist"
-    cloudflared tunnel route dns --origincert "$CERT_PATH" "$TUNNEL_ID" lod.charno.net || echo "Note: lod.charno.net may already exist"
+    cloudflared tunnel route dns "$TUNNEL_ID" charno.net || echo "Note: charno.net may already exist"
+    cloudflared tunnel route dns "$TUNNEL_ID" www.charno.net || echo "Note: www.charno.net may already exist"
+    cloudflared tunnel route dns "$TUNNEL_ID" lod.charno.net || echo "Note: lod.charno.net may already exist"
 
     echo "✓ DNS records processed"
     echo ""
