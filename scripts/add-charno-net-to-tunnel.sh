@@ -30,25 +30,52 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-echo "Step 1: Adding DNS records to Cloudflare Tunnel..."
+echo "Step 1: Checking for origin certificate..."
 echo ""
 
-# Add DNS routes for charno.net domains
-cloudflared tunnel route dns "$TUNNEL_ID" charno.net
-cloudflared tunnel route dns "$TUNNEL_ID" www.charno.net
-cloudflared tunnel route dns "$TUNNEL_ID" lod.charno.net
+# Find the origin certificate
+CERT_PATH=""
+for path in ~/.cloudflared/cert.pem /home/pi/.cloudflared/cert.pem /etc/cloudflared/cert.pem; do
+    if [ -f "$path" ]; then
+        CERT_PATH="$path"
+        echo "✓ Found origin certificate: $CERT_PATH"
+        break
+    fi
+done
 
-echo "✓ DNS records added"
-echo ""
+if [ -z "$CERT_PATH" ]; then
+    echo "ERROR: Could not find origin certificate"
+    echo "Looked in:"
+    echo "  - ~/.cloudflared/cert.pem"
+    echo "  - /home/pi/.cloudflared/cert.pem"
+    echo "  - /etc/cloudflared/cert.pem"
+    echo ""
+    echo "Skipping DNS record creation. You can add them manually via Cloudflare dashboard."
+    echo "Continuing with config file update..."
+    SKIP_DNS=true
+else
+    echo ""
+    echo "Step 2: Adding DNS records to Cloudflare Tunnel..."
+    echo ""
 
-echo "Step 2: Backing up current config..."
+    # Add DNS routes for charno.net domains
+    cloudflared tunnel route dns --origincert "$CERT_PATH" "$TUNNEL_ID" charno.net || echo "Note: charno.net may already exist"
+    cloudflared tunnel route dns --origincert "$CERT_PATH" "$TUNNEL_ID" www.charno.net || echo "Note: www.charno.net may already exist"
+    cloudflared tunnel route dns --origincert "$CERT_PATH" "$TUNNEL_ID" lod.charno.net || echo "Note: lod.charno.net may already exist"
+
+    echo "✓ DNS records processed"
+    echo ""
+    SKIP_DNS=false
+fi
+
+echo "Step 3: Backing up current config..."
 echo ""
 
 cp "$CONFIG_FILE" "${CONFIG_FILE}.backup-$(date +%Y%m%d-%H%M%S)"
 echo "✓ Backup created"
 echo ""
 
-echo "Step 3: Checking if charno.net is already in config..."
+echo "Step 4: Checking if charno.net is already in config..."
 echo ""
 
 if grep -q "hostname: charno.net" "$CONFIG_FILE"; then
@@ -102,7 +129,7 @@ fi
 
 echo ""
 
-echo "Step 4: Validating config..."
+echo "Step 5: Validating config..."
 echo ""
 
 cloudflared tunnel ingress validate
@@ -110,7 +137,7 @@ cloudflared tunnel ingress validate
 echo "✓ Config validated"
 echo ""
 
-echo "Step 5: Restarting cloudflared service..."
+echo "Step 6: Restarting cloudflared service..."
 echo ""
 
 systemctl restart cloudflared
